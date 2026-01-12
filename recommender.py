@@ -1,4 +1,4 @@
-# recommender.py
+# recommender.py# recommender.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -10,6 +10,7 @@ import time
 import plotly.graph_objects as go
 import plotly.express as px
 from io import BytesIO
+import random
 
 # Set page config
 st.set_page_config(
@@ -27,7 +28,7 @@ class DataLoader:
 
     def load_data(self, users_path, transactions_path):
         """Load data"""
-        with st.spinner("Loading data..."):
+        with st.spinner("📂 Loading data..."):
             start = time.time()
             
             self.users_df = pd.read_csv(users_path)
@@ -35,7 +36,7 @@ class DataLoader:
             
             elapsed = time.time() - start
             
-        st.success(f"Loaded: {len(self.users_df):,} users, {len(self.transactions_df):,} transactions ({elapsed:.1f}s)")
+        st.success(f"✅ Loaded: {len(self.users_df):,} users, {len(self.transactions_df):,} transactions ({elapsed:.1f}s)")
         return self.users_df, self.transactions_df
 
 # ==================== 2. ULTRA OPTIMIZED CBF ====================
@@ -49,7 +50,7 @@ class UltraOptimizedCBF:
 
     def fit(self, users_df, transactions_df):
         """Build CBF model dengan FULL caching"""
-        with st.spinner("Building CBF model..."):
+        with st.spinner("🧠 Building CBF model..."):
             start_time = time.time()
 
             self.user_features = self._prepare_features(users_df)
@@ -181,7 +182,7 @@ class ItemBasedCF:
 
     def fit(self, transactions_df):
         """Build item-item similarity matrix (SCALABLE)"""
-        with st.spinner("Building ITEM-BASED CF..."):
+        with st.spinner("🔍 Building ITEM-BASED CF..."):
             start_time = time.time()
 
             # Build user-product matrix
@@ -275,7 +276,7 @@ class ProductRecommender:
 
     def fit(self, users_df, transactions_df):
         """Train models"""
-        with st.spinner("Training recommender..."):
+        with st.spinner("🚀 Training recommender..."):
             start_time = time.time()
 
             self.users_df = users_df
@@ -301,9 +302,20 @@ class ProductRecommender:
         for cif in active_cifs:
             cf_scores[cif] = self.cf_model.get_cf_score(cif, product_name)
 
-        # Progress bar
+        # Progress bar dan satu pesan loading
         progress_bar = st.progress(0)
         total_users = len(self.users_df)
+        
+        # Pesan loading tunggal yang akan diupdate
+        progress_message = st.empty()
+        initial_messages = [
+            "🕒 **Nunggu 3-5 menit ya!** Lagi analisis customer...",
+            "⏳ **Butuh 3-7 menit nih!** Sabar ya, hasilnya worth it kok!",
+            "☕ **Sambil nunggu 3-10 menit**, boleh nyemil dulu!",
+            "🔍 **Tunggu 4-8 menit ya!** Lagi proses ribuan data...",
+            "🎯 **Sedang cari customer terbaik**, butuh 3-9 menit!"
+        ]
+        progress_message.info(random.choice(initial_messages))
         
         for i, (_, user) in enumerate(self.users_df.iterrows(), 1):
             cif = user['CIF']
@@ -333,14 +345,37 @@ class ProductRecommender:
                     'RANGE_SALDO': user['RANGE_SALDO']
                 })
             
-            # Update progress bar
-            if i % 100 == 0 or i == total_users:
-                progress_bar.progress(i / total_users)
+            # Update progress bar dan pesan setiap 10%
+            if i % (total_users // 10) == 0 or i == total_users:
+                progress_percent = int((i / total_users) * 100)
+                progress_bar.progress(progress_percent / 100)
+                
+                # Update pesan progress
+                if progress_percent < 100:
+                    progress_messages = [
+                        f"📈 **{progress_percent}% complete!** Sedang proses {i} dari {total_users} customer...",
+                        f"🔥 **{progress_percent}% done!** Masih ada {total_users - i} customer lagi...",
+                        f"⚡ **{progress_percent}% selesai!** Sabar ya, lagi jalan nih!",
+                        f"🎪 **{progress_percent}% processed!** Masih seru nih analisisnya!",
+                        f"🚦 **{progress_percent}% complete!** Tunggu bentar lagi ya!"
+                    ]
+                    progress_message.info(random.choice(progress_messages))
 
+        progress_bar.empty()
+        progress_message.empty()
+        
+        # Pesan selesai
+        completion_messages = [
+            "🎉 **Selesai!** Proses analisis berhasil!",
+            "✅ **Done!** Hasilnya sudah keluar!",
+            "✨ **Analysis complete!** Silakan lihat hasilnya!",
+            "🏁 **Finish!** Proses berjalan lancar!",
+            "🥳 **Berhasil!** Data siap dilihat!"
+        ]
+        st.success(random.choice(completion_messages))
+        
         # Sort results
         all_user_scores.sort(key=lambda x: x['FINAL_SCORE'], reverse=True)
-        
-        progress_bar.empty()
         
         return all_user_scores
 
@@ -368,7 +403,7 @@ class ProductRecommender:
         age_dist = buyer_details['AGE_GROUP'].value_counts().head(3)
         insights['age_distribution'] = age_dist
         
-        # Top 3 occupations (PERUBAHAN: ambil top 3, bukan hanya 1)
+        # Top 3 occupations
         occ_dist = buyer_details['OCCUPATION'].value_counts().head(3)
         insights['occupation_distribution'] = occ_dist
         
@@ -430,6 +465,8 @@ def main():
         st.session_state.selected_product = None
     if 'insights' not in st.session_state:
         st.session_state.insights = None
+    if 'sort_config' not in st.session_state:
+        st.session_state.sort_config = {'column': 'FINAL_SCORE', 'ascending': False}
     
     # Sidebar
     with st.sidebar:
@@ -479,10 +516,10 @@ def main():
             
             # Train button
             if st.button("🚀 Train Model", type="primary", use_container_width=True):
-                with st.spinner("Training model..."):
+                with st.spinner("⏳ **Training model butuh 1-3 menit ya!** Lagi belajar dari data..."):
                     st.session_state.recommender = ProductRecommender(cf_weight=cf_weight, cbf_weight=cbf_weight)
                     st.session_state.recommender.fit(users_df, transactions_df)
-                    st.success("✅ Model trained successfully!")
+                    st.success("🎉 **Model trained successfully!**")
         
         st.markdown("---")
         st.markdown("### 🎯 About")
@@ -491,6 +528,8 @@ def main():
         - **Item-Based Collaborative Filtering**
         - **Content-Based Filtering**
         - **Hybrid Recommendation**
+        
+        ⏱️ **Note:** Analysis might take 3-10 minutes for large datasets
         """)
     
     # Main content area
@@ -516,7 +555,17 @@ def main():
             if st.button("🔍 Start Analysis", type="primary", use_container_width=True):
                 st.session_state.selected_product = selected_product
                 
-                with st.spinner(f"Analyzing {selected_product}..."):
+                # Tampilkan pesan lucu sebelum mulai
+                analysis_messages = [
+                    "⏳ **Siap-siap ya!** Analisis bakal butuh **3-8 menit** nih!",
+                    "🕐 **Tunggu sebentar!** Proses ini butuh **4-10 menit**, worth it kok!",
+                    "⏰ **Mohon bersabar!** Loading sekitar **3-7 menit** ya!",
+                    "⌛ **Sedang diproses!** Butuh waktu **5-9 menint** nih!"
+                ]
+                
+                st.info(random.choice(analysis_messages))
+                
+                with st.spinner("🔍 **Analyzing product...**"):
                     # Get recommendations
                     st.session_state.results = st.session_state.recommender.get_all_users_for_product(
                         selected_product, min_score=0.01
@@ -524,53 +573,51 @@ def main():
                     
                     # Get product insights
                     st.session_state.insights = st.session_state.recommender.get_product_insights(selected_product)
-                
-                st.success(f"✅ Analysis completed! Found {len(st.session_state.results)} potential customers.")
         
-        with col2:
-            st.header("📥 Export")
-            if st.session_state.results:
-                # Create Excel file
-                df_results = pd.DataFrame(st.session_state.results)
+    with col2:
+        st.header("📥 Export")
+        if st.session_state.results:
+            # Create Excel file
+            df_results = pd.DataFrame(st.session_state.results)
+            
+            # Prepare Excel with multiple sheets
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                # All users
+                df_all = df_results[['CIF', 'FINAL_SCORE']].copy()
+                df_all.to_excel(writer, sheet_name='All Users', index=False)
                 
-                # Prepare Excel with multiple sheets
-                output = BytesIO()
-                with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                    # All users
-                    df_all = df_results[['CIF', 'FINAL_SCORE']].copy()
-                    df_all.to_excel(writer, sheet_name='All Users', index=False)
-                    
-                    # Potential buyers
-                    df_potential = df_results[df_results['USER_STATUS'] == 'ACTIVE'][['CIF', 'FINAL_SCORE']].copy()
-                    df_potential.to_excel(writer, sheet_name='Potential Buyers', index=False)
-                    
-                    # Cold users (CBF only)
-                    cold_users = st.session_state.recommender.users_df[
-                        st.session_state.recommender.users_df['IS_COLD'] == True
-                    ].copy()
-                    
-                    cold_scores = []
-                    for _, user in cold_users.iterrows():
-                        cbf_score = st.session_state.recommender.cbf_model.get_cbf_score_fast(
-                            user['CIF'], st.session_state.selected_product
-                        )
-                        if cbf_score >= 0.01:
-                            cold_scores.append({
-                                'CIF': user['CIF'],
-                                'FINAL_SCORE': round(cbf_score, 4)
-                            })
-                    
-                    df_cold = pd.DataFrame(cold_scores)
-                    df_cold.to_excel(writer, sheet_name='Cold User Potential', index=False)
+                # Potential buyers
+                df_potential = df_results[df_results['USER_STATUS'] == 'ACTIVE'][['CIF', 'FINAL_SCORE']].copy()
+                df_potential.to_excel(writer, sheet_name='Potential Buyers', index=False)
                 
-                # Download button
-                st.download_button(
-                    label="📊 Download Excel Report",
-                    data=output.getvalue(),
-                    file_name=f"recommendations_{st.session_state.selected_product}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
+                # Cold users (CBF only)
+                cold_users = st.session_state.recommender.users_df[
+                    st.session_state.recommender.users_df['IS_COLD'] == True
+                ].copy()
+                
+                cold_scores = []
+                for _, user in cold_users.iterrows():
+                    cbf_score = st.session_state.recommender.cbf_model.get_cbf_score_fast(
+                        user['CIF'], st.session_state.selected_product
+                    )
+                    if cbf_score >= 0.01:
+                        cold_scores.append({
+                            'CIF': user['CIF'],
+                            'FINAL_SCORE': round(cbf_score, 4)
+                        })
+                
+                df_cold = pd.DataFrame(cold_scores)
+                df_cold.to_excel(writer, sheet_name='Cold User Potential', index=False)
+            
+            # Download button
+            st.download_button(
+                label="📊 Download Excel Report",
+                data=output.getvalue(),
+                file_name=f"recommendations_{st.session_state.selected_product}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
     
     # Display results if available
     if st.session_state.results and st.session_state.insights:
@@ -585,7 +632,7 @@ def main():
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            # Total buyers (PERUBAHAN BARU: tambah metric jumlah user yang sudah beli)
+            # Total buyers
             st.metric("Users who already bought", 
                      f"{insights['total_buyers']:,}",
                      "Actual buyers")
@@ -616,14 +663,14 @@ def main():
                          insights['balance_distribution'].index[0],
                          f"{insights['balance_distribution'].iloc[0]:,} users")
         
-        # Row 2: Top 3 Occupations (PERUBAHAN: tampilkan 3, bukan 1)
+        # Row 2: Top 3 Occupations
         st.subheader("👥 Top 3 Occupations of Buyers")
         
         if 'occupation_distribution' in insights and len(insights['occupation_distribution']) > 0:
             occ_cols = st.columns(3)
             
             for idx, (occupation, count) in enumerate(insights['occupation_distribution'].items()):
-                if idx < 3:  # Hanya tampilkan top 3
+                if idx < 3:
                     with occ_cols[idx]:
                         # Calculate percentage
                         total_buyers = insights['total_buyers']
@@ -769,17 +816,75 @@ def main():
             (df_display['SCORE_RANGE'].isin(score_filter)) &
             (df_display['USER_STATUS'].isin(status_filter)) &
             (df_display['FINAL_SCORE'] >= min_score)
-        ]
+        ].copy()
         
-        # Display table
-        st.dataframe(
-            filtered_df[['CIF', 'FINAL_SCORE', 'SCORE_RANGE', 'USER_STATUS', 'AGE', 'GENDER', 'OCCUPATION', 'RANGE_SALDO']]
-            .sort_values('FINAL_SCORE', ascending=False)
-            .head(100),
-            use_container_width=True
+        # Sorting functionality yang benar
+        sort_col = st.selectbox(
+            "Sort by column:",
+            ['FINAL_SCORE', 'AGE', 'GENDER', 'OCCUPATION', 'RANGE_SALDO', 'USER_STATUS']
         )
         
-        st.caption(f"Showing {len(filtered_df)} of {len(df_display)} customers")
+        sort_order = st.radio(
+            "Sort order:",
+            ["Descending (High to Low)", "Ascending (Low to High)"],
+            horizontal=True
+        )
+        
+        ascending = sort_order == "Ascending (Low to High)"
+        
+        # Apply sorting
+        if sort_col == 'FINAL_SCORE':
+            filtered_df = filtered_df.sort_values('FINAL_SCORE', ascending=ascending)
+        elif sort_col == 'AGE':
+            filtered_df = filtered_df.sort_values('AGE', ascending=ascending)
+        elif sort_col == 'GENDER':
+            filtered_df = filtered_df.sort_values('GENDER', ascending=ascending)
+        elif sort_col == 'OCCUPATION':
+            filtered_df = filtered_df.sort_values('OCCUPATION', ascending=ascending)
+        elif sort_col == 'RANGE_SALDO':
+            # Urutkan berdasarkan kategori balance yang sudah ada
+            balance_order = ['1-5jt', '5-10jt', '10-25jt', '25-50jt', '50-100jt', '>100jt']
+            if ascending:
+                balance_order = balance_order
+            else:
+                balance_order = list(reversed(balance_order))
+            
+            filtered_df['RANGE_SALDO'] = pd.Categorical(
+                filtered_df['RANGE_SALDO'], 
+                categories=balance_order, 
+                ordered=True
+            )
+            filtered_df = filtered_df.sort_values('RANGE_SALDO', ascending=ascending)
+        elif sort_col == 'USER_STATUS':
+            filtered_df = filtered_df.sort_values('USER_STATUS', ascending=ascending)
+        
+        # Display table dengan interaktif sorting dari Streamlit
+        st.dataframe(
+            filtered_df[['CIF', 'FINAL_SCORE', 'SCORE_RANGE', 'USER_STATUS', 'AGE', 'GENDER', 'OCCUPATION', 'RANGE_SALDO']]
+            .head(100),
+            use_container_width=True,
+            column_config={
+                "FINAL_SCORE": st.column_config.NumberColumn(
+                    "Score",
+                    format="%.4f",
+                    help="Recommendation score (0-1)"
+                ),
+                "AGE": st.column_config.NumberColumn(
+                    "Age",
+                    help="Customer age"
+                ),
+                "SCORE_RANGE": st.column_config.TextColumn(
+                    "Score Range",
+                    help="Score category"
+                ),
+                "USER_STATUS": st.column_config.TextColumn(
+                    "Status",
+                    help="Active or Cold user"
+                )
+            }
+        )
+        
+        st.caption(f"Showing {min(len(filtered_df), 100)} of {len(filtered_df)} customers")
         
         # Summary statistics
         st.subheader("📊 Summary Statistics")
@@ -811,11 +916,12 @@ def main():
     st.markdown(
         """
         <div style='text-align: center; color: gray;'>
-        🏦 BANK BTN Product Recommendation System | Built with Streamlit
+        🏦 BANK BTN Product Recommendation System | Built with Streamlit | ⏱️ Analysis time: 3-10 minutes
         </div>
         """,
         unsafe_allow_html=True
     )
 
 if __name__ == "__main__":
+    main()
     main()
