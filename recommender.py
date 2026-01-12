@@ -1,4 +1,4 @@
-# recommender.py# recommender.py
+# recommender.py - HANYA PERBAIKI BAGIAN YANG BERMASALAH
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -472,25 +472,30 @@ def main():
     with st.sidebar:
         st.header("📊 Configuration")
         
-        # File upload or path input
+        # File upload or path input - TAMBAHKAN KEY UNIK
         st.subheader("Data Source")
         data_source = st.radio("Choose data source:", 
-                              ["Use sample data", "Upload CSV files", "Use file paths"])
+                              ["Use sample data", "Upload CSV files", "Use file paths"],
+                              key="data_source_radio")  # KEY UNIK
         
         users_df = None
         transactions_df = None
         
         if data_source == "Upload CSV files":
-            users_file = st.file_uploader("Upload users.csv", type=['csv'])
-            transactions_file = st.file_uploader("Upload transactions.csv", type=['csv'])
+            users_file = st.file_uploader("Upload users.csv", type=['csv'], 
+                                         key="users_file_uploader")  # KEY UNIK
+            transactions_file = st.file_uploader("Upload transactions.csv", type=['csv'],
+                                                key="transactions_file_uploader")  # KEY UNIK
             
             if users_file and transactions_file:
                 users_df = pd.read_csv(users_file)
                 transactions_df = pd.read_csv(transactions_file)
                 
         elif data_source == "Use file paths":
-            users_path = st.text_input("Path to users.csv", "users.csv")
-            transactions_path = st.text_input("Path to transactions.csv", "transactions.csv")
+            users_path = st.text_input("Path to users.csv", "users.csv",
+                                      key="users_path_input")  # KEY UNIK
+            transactions_path = st.text_input("Path to transactions.csv", "transactions.csv",
+                                             key="transactions_path_input")  # KEY UNIK
             
             if os.path.exists(users_path) and os.path.exists(transactions_path):
                 users_df = pd.read_csv(users_path)
@@ -509,13 +514,16 @@ def main():
         if users_df is not None and transactions_df is not None:
             st.success(f"✅ Data loaded: {len(users_df)} users, {len(transactions_df)} transactions")
             
-            # Model weights
+            # Model weights - TAMBAHKAN KEY UNIK
             st.subheader("Model Weights")
-            cf_weight = st.slider("Collaborative Filtering Weight", 0.0, 1.0, 0.3, 0.1)
-            cbf_weight = st.slider("Content-Based Filtering Weight", 0.0, 1.0, 0.7, 0.1)
+            cf_weight = st.slider("Collaborative Filtering Weight", 0.0, 1.0, 0.3, 0.1,
+                                 key="cf_weight_slider")  # KEY UNIK
+            cbf_weight = st.slider("Content-Based Filtering Weight", 0.0, 1.0, 0.7, 0.1,
+                                  key="cbf_weight_slider")  # KEY UNIK
             
-            # Train button
-            if st.button("🚀 Train Model", type="primary", use_container_width=True):
+            # Train button - TAMBAHKAN KEY UNIK
+            if st.button("🚀 Train Model", type="primary", use_container_width=True,
+                        key="train_model_button"):  # KEY UNIK
                 with st.spinner("⏳ **Training model butuh 1-3 menit ya!** Lagi belajar dari data..."):
                     st.session_state.recommender = ProductRecommender(cf_weight=cf_weight, cbf_weight=cbf_weight)
                     st.session_state.recommender.fit(users_df, transactions_df)
@@ -543,16 +551,17 @@ def main():
             unique_products = st.session_state.recommender.transactions_df['TRANSACTION_BILLER'].unique().tolist()
             unique_products.sort()
             
-            # Product selection
+            # Product selection - TAMBAHKAN KEY UNIK
             selected_product = st.selectbox(
                 "Select a product to analyze:",
                 unique_products,
                 index=0 if len(unique_products) > 0 else None,
-                key="product_select"
+                key="product_select_main"  # KEY UNIK
             )
             
-            # Analysis button
-            if st.button("🔍 Start Analysis", type="primary", use_container_width=True):
+            # Analysis button - TAMBAHKAN KEY UNIK
+            if st.button("🔍 Start Analysis", type="primary", use_container_width=True,
+                        key="start_analysis_button"):  # KEY UNIK
                 st.session_state.selected_product = selected_product
                 
                 # Tampilkan pesan lucu sebelum mulai
@@ -610,13 +619,14 @@ def main():
                 df_cold = pd.DataFrame(cold_scores)
                 df_cold.to_excel(writer, sheet_name='Cold User Potential', index=False)
             
-            # Download button
+            # Download button - TAMBAHKAN KEY UNIK
             st.download_button(
                 label="📊 Download Excel Report",
                 data=output.getvalue(),
                 file_name=f"recommendations_{st.session_state.selected_product}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
+                use_container_width=True,
+                key="download_excel_button"  # KEY UNIK
             )
     
     # Display results if available
@@ -792,24 +802,27 @@ def main():
             labels=['0-20%', '20-40%', '40-60%', '60-80%', '80-90%', '90-100%']
         )
         
-        # Filters
+        # Filters - TAMBAHKAN KEY UNIK
         col1, col2, col3 = st.columns(3)
         with col1:
             score_filter = st.multiselect(
                 "Filter by Score Range:",
                 options=df_display['SCORE_RANGE'].unique(),
-                default=df_display['SCORE_RANGE'].unique()
+                default=df_display['SCORE_RANGE'].unique(),
+                key="score_filter"  # KEY UNIK
             )
         
         with col2:
             status_filter = st.multiselect(
                 "Filter by User Status:",
                 options=df_display['USER_STATUS'].unique(),
-                default=df_display['USER_STATUS'].unique()
+                default=df_display['USER_STATUS'].unique(),
+                key="status_filter"  # KEY UNIK
             )
         
         with col3:
-            min_score = st.slider("Minimum Score:", 0.0, 1.0, 0.01, 0.01)
+            min_score = st.slider("Minimum Score:", 0.0, 1.0, 0.01, 0.01,
+                                 key="min_score_slider")  # KEY UNIK
         
         # Apply filters
         filtered_df = df_display[
@@ -818,16 +831,18 @@ def main():
             (df_display['FINAL_SCORE'] >= min_score)
         ].copy()
         
-        # Sorting functionality yang benar
+        # Sorting functionality yang benar - TAMBAHKAN KEY UNIK
         sort_col = st.selectbox(
             "Sort by column:",
-            ['FINAL_SCORE', 'AGE', 'GENDER', 'OCCUPATION', 'RANGE_SALDO', 'USER_STATUS']
+            ['FINAL_SCORE', 'AGE', 'GENDER', 'OCCUPATION', 'RANGE_SALDO', 'USER_STATUS'],
+            key="sort_column_select"  # KEY UNIK
         )
         
         sort_order = st.radio(
             "Sort order:",
             ["Descending (High to Low)", "Ascending (Low to High)"],
-            horizontal=True
+            horizontal=True,
+            key="sort_order_radio"  # KEY UNIK
         )
         
         ascending = sort_order == "Ascending (Low to High)"
@@ -923,5 +938,4 @@ def main():
     )
 
 if __name__ == "__main__":
-    main()
     main()
